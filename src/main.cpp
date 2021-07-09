@@ -1,12 +1,15 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <Adafruit_BME280.h>
+
 
 //Define
 #define MSG_BUFFER_SIZE	(50)
+#define BME_ID 0x76
 
 //Main loop frecuency 30sg
-constexpr int main_loop_frecuency = 0.5 * 60 * 1000;
+constexpr int main_loop_frecuency = 0.1 * 60 * 1000;
 
 //Wifi connection variables
 const char* ssid = "***";
@@ -16,6 +19,8 @@ const char* mqtt_server = "***";
 WiFiClient espClient;
 
 PubSubClient mqtt_client(espClient);
+
+Adafruit_BME280 bme;
 
 char mqtt_msg[MSG_BUFFER_SIZE];
 
@@ -68,18 +73,31 @@ void setup() {
   //Configure mqtt server & callback
   mqtt_client.setServer(mqtt_server,1883);
   mqtt_client.setCallback(mqtt_callback);
+
+  Wire.begin (21, 22);   // sda= GPIO_21 /scl= GPIO_22
+
+  if (!bme.begin(BME_ID)) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1);
+  }
+  
 }
 
 void loop() {
 
-  Serial.println("Weather Station!");
+  //Serial.println("Weather Station!");
 
   if (!mqtt_client.connected()) 
   {
     mqtt_reconnect();
   }
 
-  snprintf (mqtt_msg, MSG_BUFFER_SIZE, "T|%f|H|%f|P|%f",0.0,0.0,0.0);
+  double bme_temperature= bme.readTemperature();
+  double bme_humidity= bme.readHumidity();
+  double bme_pressure= bme.readPressure()/100.0F;;
+  
+
+  snprintf (mqtt_msg, MSG_BUFFER_SIZE, "T|%f|H|%f|P|%f",bme_temperature,bme_humidity,bme_pressure);
   mqtt_client.publish("/4jggokgpepnvsb2uv4s40d59ov/motion001/attrs", mqtt_msg);
 
   delay(main_loop_frecuency);
