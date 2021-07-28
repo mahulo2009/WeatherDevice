@@ -3,18 +3,17 @@
 #include <PubSubClient.h>
 #include <Adafruit_BME280.h>
 
-
 //Define
 #define MSG_BUFFER_SIZE	(50)
 #define BME_ID 0x76
 
 //Main loop frecuency 30sg
-constexpr int main_loop_frecuency = 0.1 * 60 * 1000;
+constexpr int main_loop_frecuency = 5 * 60 * 1000; //todo frecuency is hardcoded find a way to configure
 
 //Wifi connection variables
 const char* ssid = "***";
 const char* password = "***";
-const char* mqtt_server = "***";
+const char* mqtt_server = "192.168.1.40";
 
 WiFiClient espClient;
 
@@ -79,26 +78,22 @@ void setup() {
   if (!bme.begin(BME_ID)) {
     Serial.println("Could not find a valid BME280 sensor, check wiring!");
     while (1);
-  }
-  
+  } 
 }
 
 void loop() {
-
   //Serial.println("Weather Station!");
-
   if (!mqtt_client.connected()) 
   {
-    mqtt_reconnect();
+    mqtt_reconnect(); //todo this way of connect not allow to read values when trying to connect
   }
 
   double bme_temperature= bme.readTemperature();
   double bme_humidity= bme.readHumidity();
   double bme_pressure= bme.readPressure()/100.0F;;
-  
 
   snprintf (mqtt_msg, MSG_BUFFER_SIZE, "T|%f|H|%f|P|%f",bme_temperature,bme_humidity,bme_pressure);
-  mqtt_client.publish("/4jggokgpepnvsb2uv4s40d59ov/motion001/attrs", mqtt_msg);
+  mqtt_client.publish("/4jggokgpepnvsb2uv4s40d59ov/weather001/attrs", mqtt_msg); //todo the topic is hardcoded, find a way to set this value
 
   delay(main_loop_frecuency);
 }
